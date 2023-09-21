@@ -1,4 +1,4 @@
-import React from "react";
+import {useEffect, useState} from "react";
 import { getImages } from "api";
 import { SearchBar } from "./SearchBar/SearchBar";
 import { ImageGallery } from "./ImageGallery/ImageGallery";
@@ -7,83 +7,78 @@ import { Loader } from "./Loader/Loader";
 import { Modal } from "./Modal/Modal";
 import { Report } from 'notiflix/build/notiflix-report-aio';
 
-
-export class App extends React.Component {
-  state = {
-    searchValue: '',
-    gallery: [],
-    page: 1,
-    loading: false,
-    error: false,
-    modalOpen: false,
-    largeImageURL: '',
-  }
-
-  async componentDidUpdate(prevProps, prevState) {
-    const { page, searchValue, gallery } = this.state;
-
-    if (searchValue !== prevState.searchValue || page !== prevState.page) {
-      this.setState({ loading: true, error: false });
-      
+export const App = () => {
+  const [searchValue, setSearchValue] = useState('');
+  const [gallery, setGallery] = useState([]);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [largeImageURL, setLargeImageURL] = useState('');
+  
+  useEffect(() => {
+    if (!searchValue) {
+      return;
+    }
+    async function fetchImages() {
+      setLoading(true);
+      setError(false);
       try {
         const newImages = await getImages(searchValue, page);
         if (newImages.data.hits.length === 0) {
           Report.failure('Oh shit!', 'No results', 'Okay(');
         }
-        this.setState({ gallery: [...gallery, ...newImages.data.hits] });
+        setGallery(prev => [...prev, ...newImages.data.hits]);
       } catch (error) {
-        this.setState({ error: true });
+        setError(true);
         Report.failure('Oh shit!', 'No results', 'Okay(');
       } finally {
-        this.setState({ loading: false });
+        setLoading(false)
       }
     }
-  }
-
-  onSearch = value => {
+    fetchImages();
+  }, [searchValue, page]);
+  
+  const onSearch = value => {
     if (value === '') {
       return;
     }
-    this.setState({ searchValue: value, page: 1, gallery: [] });
+    setSearchValue(value);
+    setPage(1);
+    setGallery([]);
   }
 
-  onLoadMore = () => {
-    this.setState(prevState => {
-      return { page: prevState.page + 1 };
-    })
+  const onLoadMore = () => {
+    setPage(prev => prev + 1);
   }
 
-  openModal = () => {
-    this.setState({ modalOpen: true });
+  const openModal = () => {
+    setModalOpen(true);
   }
 
-  closeModal = () => {
-    this.setState({ modalOpen: false });
+  const closeModal = () => {
+    setModalOpen(false);
   }
 
-  onImageClick = url => {
-    this.openModal();
-    this.setState({ largeImageURL: url });
+  const onImageClick = url => {
+    openModal();
+    setLargeImageURL(url);
   }
-
-  render() {
-    const { gallery, loading, error, modalOpen, largeImageURL } = this.state;
-    return (
-      <div>
-        <SearchBar onSubmit={this.onSearch} />
+  
+   return (
+      <>
+        <SearchBar onSubmit={onSearch} />
         <ImageGallery
           gallery={gallery}
-          onImageClick={this.onImageClick}
+          onImageClick={onImageClick}
         />
-        {gallery.length > 0 && !loading && <Button onClick={this.onLoadMore} />}
+        {gallery.length > 0 && !loading && <Button onClick={onLoadMore} />}
         {loading && !error && <Loader />}
         {modalOpen && <Modal
           largeImage={largeImageURL}
-          onClose={this.closeModal}
+          onClose={closeModal}
           />
         }
-      </div>
+      </>
     );
-  }
-};
-
+}
