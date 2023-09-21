@@ -67,7 +67,7 @@ export const App = () => {
   
    return (
       <>
-        <SearchBar onSubmit={onSearch} />
+        <SearchBar onSearch={onSearch} />
         <ImageGallery
           gallery={gallery}
           onImageClick={onImageClick}
